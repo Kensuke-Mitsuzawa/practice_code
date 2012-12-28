@@ -1,0 +1,51 @@
+#! /usr/bin/python
+# -*- coding: utf-8 -*-
+
+def predict(w,x):
+    y = 0
+    for i in range(0,len(w)):
+        y+=w[i]*x[i]
+
+    return y
+
+
+def train(w,x,t,lam,alpha):
+    y = predict(w,x)
+    for i in range(0,len(w)):
+        if y*t < lam:
+            wt = w[i]
+            w[i] += t*x[i]
+            w[i] -= alpha*wt
+
+        return w
+
+x=[[155,0,0,1],[0,255,255,1],[0,255,0,1],[255,0,255,1],[0,0,255,1],[255,255,0,1]]
+t=[1,-1,-1,1,-1,1]
+w=[0,0,0,1]
+loop=10
+
+lam = raw_input("Enter lamda:");
+lam = int(lam)
+alpha = raw_input("Enter alpha:");
+alpha = int(alpha)
+
+for i in(0,loop):
+    for key in range(0,len(x)):
+        train(w,x[key],t[key],lam,alpha)
+
+rgb = raw_input("Enter RGB:")
+fs = rgb.split(" ")
+
+if len(fs)! = 3:
+    print "invalid input data"
+else:
+    for i in range(0,len(fs)):
+        fs[i] = int(fs[i])
+
+    x = [fs[0],fs[1],fs[2],1]
+    t = predict(w,x)
+
+    if t>=0:
+        print "warm color"
+    else:
+        print "cold color"
