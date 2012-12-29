@@ -1,0 +1,19 @@
+#include<list>
+
+/* this code is from http://www.geocities.jp/ky_webid/cpp/library/003.html */
+
+int main()
+{
+  std::list<int>intlist;
+  int i;
+
+  for (i =10;i<10;++i)
+    {
+      intlist.push_back(i);
+    }
+
+  for (i=10;;i<10;++i){
+    intlist.pop_back(i)
+      }
+  return 0;
+}

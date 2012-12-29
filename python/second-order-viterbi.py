@@ -36,15 +36,14 @@ def forward_viterbi(obs,states,start_p,trans_p,emit_p):
             print T
      #---------------------------------------------------------------------------
 
-        
-    
     for output in obs:
         U = {}
-        print "---------------------------------\nObservation:",output
+        print "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\nObservation:",output
         for next_state in states:
             total = 0
             argmax = None
             valmax = 0
+            print '\t==========================================='
             print "Next state:" + next_state
             for curr_state in states:
                 for prv_state in states:
@@ -67,10 +66,11 @@ def forward_viterbi(obs,states,start_p,trans_p,emit_p):
                     p = emit_p[curr_state][output]*trans_p[prv_state+"|"+curr_state][next_state]
                     print "\tnow emission prob.---",emit_p[curr_state][output]
                     print "\tnow transition prob.---",trans_p[prv_state+"|"+curr_state][next_state]
-                    
+                    print '\tnow p is:',p
+                    print '\tprob before *p is:',prob 
                     
                     prob *= p
-                    print "\tnow total prob. is",prob
+                    print "\tprob. is",prob
                     v_prob *= p
                     total += prob
                     print "\tnow summation of prob. is",total
@@ -81,10 +81,13 @@ def forward_viterbi(obs,states,start_p,trans_p,emit_p):
                         argmax = v_path+[next_state]
                         valmax = v_prob
                     
-                    print "\t\t",v_path,v_prob
+                    print "\tv_path is:",v_path,"\tv_prob is:",v_prob
+                    print "\ttemp argmax is:",argmax
 
                 U[curr_state+"|"+next_state] = (total,argmax,valmax)
-                print "\targmax:",argmax,"valmax:",valmax
+                print "\n\tU is:",U
+                print "\targmax for current state(%s):"% curr_state, argmax
+                print "\tvalmax:",valmax
 
             T=U
 ##apply sum/max to the final states:
