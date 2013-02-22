@@ -1,0 +1,19 @@
+#include<iostream>
+using namespace std;
+
+int main()
+{
+
+  int i,j;
+  double d;
+
+  i=10, j=20, f=99.101;
+  
+  count << "Here are some values:";
+  count << i;
+  count << ' ';
+  count << j;
+  count << ' ';
+  count << d;
+
+  return 0 }

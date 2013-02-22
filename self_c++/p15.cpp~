@@ -1,0 +1,19 @@
+#include<iostream>
+
+using namespace std;
+
+int main(){
+  int i;
+  float f;
+  char s[80];
+
+  cout << "enter an integer,float,and string";
+
+  cin >> i >> f >> s;
+  
+  cout << "here are your data:";
+
+  cout << i << ' ' << f << ' ' << s << '\n';
+  
+  return 0;
+}
