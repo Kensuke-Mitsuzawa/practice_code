@@ -24,11 +24,11 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     #多重ループになるけども，(y_i_-1,y_i),(y_i,y_i+1),(y_i,x_i)を作り出すためにこうする
     for y_i in tag_set:
         for y_i_minus_1 in tag_set:
-            y_i_minus_1_to_y_i.setdefault(str(y_i_minus_1)+'_'+str(y_i), 0)
+            y_i_minus_1_to_y_i.setdefault(str(y_i_minus_1)+'_'+str(y_i), random.randint(0, 500))
         for y_i_plus_1 in tag_set:
-            y_i_to_y_i_plus_1.setdefault(str(y_i)+'_'+str(y_i_plus_1), 0)
+            y_i_to_y_i_plus_1.setdefault(str(y_i)+'_'+str(y_i_plus_1), random.randint(0, 500))
         for x_i in token_list:
-            y_i_to_x_i.setdefault(str(y_i)+'_'+x_i, 0)
+            y_i_to_x_i.setdefault(str(y_i)+'_'+x_i, random.randint(0, 500))
     Y.setdefault('y_i_minus_1_to_y_i', y_i_minus_1_to_y_i)
     Y.setdefault('y_i_to_x_i', y_i_to_x_i)
     Y.setdefault('y_i_to_y_i_plus_1', y_i_to_y_i_plus_1)
