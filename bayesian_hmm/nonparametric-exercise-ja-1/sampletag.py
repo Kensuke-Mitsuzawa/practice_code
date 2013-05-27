@@ -1,14 +1,23 @@
 #! /usr/bin/python
 # -*- coding:utf-8 -*-
-__version__='2013/5/25'
+__version__='2013/5/27'
 
 alpha=0.1
 
 def dirichlet_process(tag, y_i, token_list, Y):
    frequency_of_y_i_minus_1=Y['frequency_y_i'][str(Y['sequence_y_i'][(y_i)-1])]
    frequency_of_y_i=Y['frequency_y_i'][str(Y['sequence_y_i'][y_i])]
+   frequency_y_i_minus_1_to_y_i=\
+       Y['frequency_y_i_minus_1_to_y_i'][str(Y['sequence_y_i'][(y_i)-1])+'_'+str(tag)]
+   if y_i < len(Y['sequence_y_i'])-1:
+      frequency_y_i_to_y_i_plus_1=\
+          Y['frequency_y_i_to_y_i_plus_1'][str(tag)+'_'+str(Y['sequence_y_i'][(y_i)+1])]
+   else:
+      frequency_y_i_to_y_i_plus_1=\
+          Y['frequency_y_i_to_y_i_plus_1'][str(tag)]
+   frequency_y_i_to_x_i=\
+       Y['frequency_y_i_to_x_i'][str(tag)+'_'+str(token_list[y_i])]
    """
-   #TODO:残りのパラメータも準備してdiriclet processの式の完成
    #基底確率について：P_base,Tは一様分布に．P_base_Eは単語のユニグラム確率にする
    本当は，y_(i-1)が名詞のとき，y_iの品詞が〜にである確率．\
        という風に基底測度を分けた方がよいのかもしれないが...\
@@ -16,11 +25,14 @@ def dirichlet_process(tag, y_i, token_list, Y):
        つまりどの品詞タグも1/21で出現
        """
    base_measure_T=1.0/21
-   #要は基底測度
+   #要はunigram確率
    base_measure_E=Y['unigram_prob'][token_list[y_i]]
-   
-   print base_measure_T, base_measure_E
-
+   #dirichlet_process equations below
+   p_tag_given_y_i_minus_1=(frequency_y_i_minus_1_to_y_i+alpha*base_measure_T)/(frequency_of_y_i_minus_1+alpha)
+   p_y_i_plus_1_given_tag=(frequency_y_i_to_y_i_plus_1+alpha*base_measure_T)/(frequency_of_y_i+alpha)
+   p_x_i_given_tag=(frequency_y_i_to_x_i+alpha*base_measure_E)/(frequency_of_y_i+alpha)
+   p_multiplicated=(p_tag_given_y_i_minus_1)*(p_y_i_plus_1_given_tag)*(p_x_i_given_tag)
+   return p_multiplicated
 def SampleTag(token_list, y_i, Y, tag_set):
    """
    y_iはY['sequence_y_i']のリストのインデックス番号
@@ -39,7 +51,7 @@ def SampleTag(token_list, y_i, Y, tag_set):
       backward_bigram_key=str(Y['sequence_y_i'][y_i])+'_'+str(Y['sequence_y_i'][(y_i)+1])
       Y['frequency_y_i_to_y_i_plus_1'][backward_bigram_key]-=1
    else:
-       Y['frequency_y_i_to_y_i_plus_1'].setdefault(y_i, 1)
+       Y['frequency_y_i_to_y_i_plus_1'][str(Y['sequence_y_i'][y_i])]
     #--------------------------------------------------------------------------------------------------------
 
    for tag in tag_set:
