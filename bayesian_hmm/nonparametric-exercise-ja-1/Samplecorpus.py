@@ -17,8 +17,19 @@ frequency_y_i_to_y_i_plus_1={}
 frequency_y_i_to_x_i={}
 #あり得るタグをすべて格納するリスト
 tag_set=[]
+#x_iのunigram確率を保存しておく
+unigram_prob={}
 #タグ番号0から21まで設定する
 for tag_number in range(0, 22):tag_set.append(tag_number)
+
+def count_x_i(word, token_list):
+   count=0
+   for x_i in token_list:
+      if x_i == word: count+=1
+      else: pass 
+   unigram_prob=float(count)/len(token_list)
+   return 
+
 
 def preprocess_Y(tag_set, Y, input_file_lines):
     token_list=[]
@@ -50,12 +61,18 @@ def preprocess_Y(tag_set, Y, input_file_lines):
             frequency_y_i_to_y_i_plus_1[backward_bigram_key]+=1
         else:
             frequency_y_i_to_y_i_plus_1.setdefault(y_i, 1)
+    #unigramを確率を計算しておく        
+    for x_i in token_list:
+        if not x_i in unigram_prob: unigram_prob.setdefault(x_i, 1)
+        else: unigram_prob[x_i]+=1
+    for x_i in unigram_prob: unigram_prob[x_i]=float(unigram_prob[x_i])/len(token_list)        
     #全部，Yの下に格納
     Y.setdefault('sequence_y_i', tag_of_y_i)
     Y.setdefault('frequency_y_i', frequency_y_i)
     Y.setdefault('frequency_y_i_minus_1_to_y_i', frequency_y_i_minus_1_to_y_i)
     Y.setdefault('frequency_y_i_to_x_i', frequency_y_i_to_x_i)
     Y.setdefault('frequency_y_i_to_y_i_plus_1', frequency_y_i_to_y_i_plus_1)
+    Y.setdefault('unigram_prob', unigram_prob)
     return token_list, Y
 
 def main():
