@@ -75,13 +75,16 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     Y.setdefault('frequency_y_i_to_y_i_plus_1', frequency_y_i_to_y_i_plus_1)
     Y.setdefault('unigram_prob', unigram_prob)
     return token_list, Y
+def 
 
 def main():
     Y={}
     token_list, Y\
         =preprocess_Y(tag_set, Y, open('wiki-sample.word', 'r').readlines())
-    for y_i, tag_of_y_i in enumerate(Y['sequence_y_i']):
-        sampletag.SampleTag(token_list, y_i, Y, tag_set)
+    for iter_i in range(0, N):
+       for y_i, tag_of_y_i in enumerate(Y['sequence_y_i']):
+          Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
+    
 
 if __name__=='__main__':
     main()

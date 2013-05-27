@@ -2,6 +2,8 @@
 # -*- coding:utf-8 -*-
 __version__='2013/5/27'
 
+import sampleone
+
 alpha=0.1
 
 def dirichlet_process(tag, y_i, token_list, Y):
@@ -56,5 +58,12 @@ def SampleTag(token_list, y_i, Y, tag_set):
 
    for tag in tag_set:
       p.append(dirichlet_process(tag, y_i, token_list, Y))
-   #y_i=SampleOne(p)
-
+   y_i=sampleone.SampleOne(p)
+   if isinstance(y_i, int)==True:  
+      Y['frequency_y_i'][str(y_i)]+=1
+      Y['frequency_y_i_minus_1_to_y_i'][str(Y['sequence_y_i'][(y_i)-1])+'_'+str(Y['sequence_y_i'][y_i])]+=1
+      Y['frequency_y_i_to_y_i_plus_1'][str(Y['sequence_y_i'][y_i])+'_'+str(Y['sequence_y_i'][(y_i)+1])]+=1
+      Y['frequency_y_i_to_x_i'][str(Y['sequence_y_i'][y_i])+'_'+token_list[y_i]]+=1
+   elif y_i==True:
+      pass
+   return Y
