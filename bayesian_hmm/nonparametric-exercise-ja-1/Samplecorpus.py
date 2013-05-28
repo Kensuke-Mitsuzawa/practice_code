@@ -4,7 +4,7 @@ import sys, random
 import sampletag
 
 #イテレーション数は適当に
-N=10
+N=1
 #y_iのタグを保存しておくリスト
 tag_of_y_i=[]
 #y_i自身の頻度を保存しておく
@@ -19,6 +19,8 @@ frequency_y_i_to_x_i={}
 tag_set=[]
 #x_iのunigram確率を保存しておく
 unigram_prob={}
+#theta_parameter dictionary
+theta_parameter={}
 #タグ番号0から21まで設定する
 for tag_number in range(0, 22):tag_set.append(tag_number)
 
@@ -44,6 +46,7 @@ def preprocess_Y(tag_set, Y, input_file_lines):
        frequency_y_i.setdefault(str(y_i), 0)
        for y_i_minus_1 in tag_set:
           frequency_y_i_minus_1_to_y_i.setdefault(str(y_i_minus_1)+'_'+str(y_i), 0)
+          frequency_y_i_minus_1_to_y_i.setdefault(str(y_i_minus_1), 0)
        for y_i_plus_1 in tag_set:
           frequency_y_i_to_y_i_plus_1.setdefault(str(y_i)+'_'+str(y_i_plus_1), 0)
           frequency_y_i_to_y_i_plus_1.setdefault(str(y_i_plus_1), 0)
@@ -52,10 +55,14 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     #unigram, bigramのカウントを取る
     for y_i, tag in enumerate(tag_of_y_i):
        frequency_y_i[str(tag)]+=1
-       forward_bigram_key=str(tag_of_y_i[(y_i)-1])+'_'+str(tag)
-       frequency_y_i_minus_1_to_y_i[forward_bigram_key]+=1
        generate_key=str(tag)+'_'+token_list[y_i]
        frequency_y_i_to_x_i[generate_key]+=1
+       #y_(i-1)がそのままだとインデックスの最後を参照してしまうので以下の処理
+       if y_i>0:
+          forward_bigram_key=str(tag_of_y_i[(y_i)-1])+'_'+str(tag)
+          frequency_y_i_minus_1_to_y_i[forward_bigram_key]+=1
+       else:
+          frequency_y_i_minus_1_to_y_i[str(tag)]+=1
        #y_(i+1)が存在するtoken数より大きくなることがあるので，以下の処理
        if y_i < len(tag_of_y_i)-1:
           backward_bigram_key=str(tag)+'_'+str(tag_of_y_i[(y_i)+1])
@@ -75,16 +82,62 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     Y.setdefault('frequency_y_i_to_y_i_plus_1', frequency_y_i_to_y_i_plus_1)
     Y.setdefault('unigram_prob', unigram_prob)
     return token_list, Y
-def 
+def calculate_theta_parameter(Y):
+   transition_prob_y_i_minus_1_to_y_i={}
+   transition_prob_y_i_to_y_i_plus_1={}
+   emission_prob_y_i_to_x_i={}
+   all_frequency_y_i_minus_1_to_y_i=0
+   all_frequency_y_i_to_y_i_plus_1=0
+   all_frequency_y_i_to_x_i=0
+   for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:\
+          all_frequency_y_i_minus_1_to_y_i+=Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i]
+   for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:\
+          all_frequency_y_i_to_y_i_plus_1+=Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1]
+   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:\
+          all_frequency_y_i_to_x_i+=Y['frequency_y_i_to_x_i'][y_i_to_x_i]
+   for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:\
+          transition_prob_y_i_minus_1_to_y_i.setdefault(y_i_minus_1_to_y_i,\
+                                                           float(Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i]/all_frequency_y_i_minus_1_to_y_i))
+   for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:\
+          transition_prob_y_i_to_y_i_plus_1.setdefault(y_i_to_y_i_plus_1,\
+                                                          float(Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1]/all_frequency_y_i_to_y_i_plus_1))
+   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:\
+          emission_prob_y_i_to_x_i.setdefault(y_i_to_x_i,\
+                                                 float(Y['frequency_y_i_to_x_i'][y_i_to_x_i]/all_frequency_y_i_to_x_i))
+   theta_parameter.setdefault('transition_prob_y_i_minus_1_to_y_i', transition_prob_y_i_minus_1_to_y_i)
+   theta_parameter.setdefault('transition_prob_y_i_to_y_i_plus_1', transition_prob_y_i_to_y_i_plus_1)
+   theta_parameter.setdefault('emission_prob_y_i_to_x_i', emission_prob_y_i_to_x_i)
+   return theta_parameter
+def debug(Y):
+   all_frequency_y_i_minus_1_to_y_i=0
+   all_frequency_y_i_to_y_i_plus_1=0
+   all_frequency_y_i_to_x_i=0
+   for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:\
+          all_frequency_y_i_minus_1_to_y_i+=Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i]
+   for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:\
+          all_frequency_y_i_to_y_i_plus_1+=Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1]
+   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
+      all_frequency_y_i_to_x_i+=Y['frequency_y_i_to_x_i'][y_i_to_x_i]
+      if Y['frequency_y_i_to_x_i'][y_i_to_x_i]>1000: print y_i_to_x_i
+   print "y_(i-1) to y_i", all_frequency_y_i_minus_1_to_y_i
+   print "y_i to x_i", all_frequency_y_i_to_x_i
+   print "y_i to y_(i+1)", all_frequency_y_i_to_y_i_plus_1
+
 
 def main():
-    Y={}
-    token_list, Y\
-        =preprocess_Y(tag_set, Y, open('wiki-sample.word', 'r').readlines())
-    for iter_i in range(0, N):
-       for y_i, tag_of_y_i in enumerate(Y['sequence_y_i']):
-          Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
-    
-
+   Y={}
+   theta_list=[]
+   token_list, Y\
+       =preprocess_Y(tag_set, Y, open('wiki-sample.word_edit', 'r').readlines())
+   for iter_i in range(0, N):
+      for y_i in (Y['sequence_y_i']):
+         Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
+      theta_parameter=calculate_theta_parameter(Y)
+      theta_list.append(theta_parameter)
+      debug(Y)
+   """
+   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
+      print y_i_to_x_i, Y['frequency_y_i_to_x_i'][y_i_to_x_i]
+      """
 if __name__=='__main__':
-    main()
+   main()
