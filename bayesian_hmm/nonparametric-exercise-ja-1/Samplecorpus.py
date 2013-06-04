@@ -82,32 +82,58 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     Y.setdefault('frequency_y_i_to_y_i_plus_1', frequency_y_i_to_y_i_plus_1)
     Y.setdefault('unigram_prob', unigram_prob)
     return token_list, Y
-def calculate_theta_parameter(Y):
+def calculate_theta_parameter(Y, summation_dict, token_list):
+   """
+   theta parameterつまり遷移確率と生成確率を計上する
+   """
    transition_prob_y_i_minus_1_to_y_i={}
    transition_prob_y_i_to_y_i_plus_1={}
    emission_prob_y_i_to_x_i={}
-   all_frequency_y_i_minus_1_to_y_i=0
-   all_frequency_y_i_to_y_i_plus_1=0
-   all_frequency_y_i_to_x_i=0
-   for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:\
-          all_frequency_y_i_minus_1_to_y_i+=Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i]
-   for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:\
-          all_frequency_y_i_to_y_i_plus_1+=Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1]
-   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:\
-          all_frequency_y_i_to_x_i+=Y['frequency_y_i_to_x_i'][y_i_to_x_i]
-   for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:\
-          transition_prob_y_i_minus_1_to_y_i.setdefault(y_i_minus_1_to_y_i,\
-                                                           float(Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i]/all_frequency_y_i_minus_1_to_y_i))
-   for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:\
-          transition_prob_y_i_to_y_i_plus_1.setdefault(y_i_to_y_i_plus_1,\
-                                                          float(Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1]/all_frequency_y_i_to_y_i_plus_1))
-   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:\
-          emission_prob_y_i_to_x_i.setdefault(y_i_to_x_i,\
-                                                 float(Y['frequency_y_i_to_x_i'][y_i_to_x_i]/all_frequency_y_i_to_x_i))
-   theta_parameter.setdefault('transition_prob_y_i_minus_1_to_y_i', transition_prob_y_i_minus_1_to_y_i)
-   theta_parameter.setdefault('transition_prob_y_i_to_y_i_plus_1', transition_prob_y_i_to_y_i_plus_1)
-   theta_parameter.setdefault('emission_prob_y_i_to_x_i', emission_prob_y_i_to_x_i)
-   return theta_parameter
+   for y_i_minus_1 in range(0, 21):
+      for y_i in range(0, 21):
+         transition_prob_y_i_minus_1_to_y_i.setdefault('{0}_{1}'.format(y_i_minus_1, y_i),\
+                                                          Y['frequency_y_i_minus_1_to_y_i']['{0}_{1}'.format(y_i_minus_1, y_i)]/float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i_minus_1)]) )
+   for y_i in range(0, 21):
+      for y_i_plus_1 in range(0, 21):
+         transition_prob_y_i_to_y_i_plus_1.setdefault('{0}_{1}'.format(y_i, y_i_plus_1),\
+                                                         Y['frequency_y_i_to_y_i_plus_1']['{0}_{1}'.format(y_i, y_i_plus_1)]/float(summation_dict['sum_y_i_to_y_i_plus_1_set']['frequency_{0}_to_any'.format(y_i)]) )
+   
+   for y_i_minus_1 in range(0, 21):
+      for x_token in token_list:
+         emission_prob_y_i_to_x_i.setdefault('{0}_{1}'.format(y_i, x_token),\
+                                                Y['frequency_y_i_to_x_i']['{0}_{1}'.format(y_i, x_token)]/float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i)]) )
+   print emission_prob_y_i_to_x_i
+def summation_transition_and_emission_frequency(Y, token_list):
+   """
+   theta parameterを求めるときの分母に使う数を計上する
+   """
+   summation_dict={}
+   transition_freq_y_i_minus_1_to_any_set={}
+   transition_freq_y_i_to_any_set={}
+   emission_freq_y_i_to_any_set={}
+   for y_i_minus_1 in range(0, 21):
+      key_of_freq_y_i_minus_1_to_any='frequency_{0}_to_any'.format(y_i_minus_1)
+      transition_freq_y_i_minus_1_to_any_set.setdefault(key_of_freq_y_i_minus_1_to_any, 0)
+      for y_i in range(0, 21):
+         transition_freq_y_i_minus_1_to_any_set[key_of_freq_y_i_minus_1_to_any]+=\
+             Y['frequency_y_i_minus_1_to_y_i']['{0}_{1}'.format(y_i_minus_1, y_i)]
+   for y_i in range(0, 21):
+      key_of_freq_y_i_to_any='frequency_{0}_to_any'.format(y_i)
+      transition_freq_y_i_to_any_set.setdefault(key_of_freq_y_i_to_any, 0)
+      for y_i_plus_1 in range(0, 21):
+         transition_freq_y_i_to_any_set[key_of_freq_y_i_to_any]+=\
+             Y['frequency_y_i_minus_1_to_y_i']['{0}_{1}'.format(y_i, y_i_plus_1)]
+   for y_i in range(0, 21):
+      key_of_freq_y_i_to_any_x='frequency_{0}_to_any_x'.format(y_i)
+      emission_freq_y_i_to_any_set.setdefault(key_of_freq_y_i_to_any_x, 0)
+      for x_token in token_list:
+         emission_freq_y_i_to_any_set[key_of_freq_y_i_to_any_x]+=\
+             Y['frequency_y_i_to_x_i']['{0}_{1}'.format(y_i, x_token)]
+   summation_dict.setdefault('sum_y_i_to_x_i_set', emission_freq_y_i_to_any_set)
+   summation_dict.setdefault('sum_y_i_to_y_i_plus_1_set', transition_freq_y_i_to_any_set)
+   summation_dict.setdefault('sum_y_i_minus_1_to_y_i_set', transition_freq_y_i_minus_1_to_any_set)
+   return summation_dict
+
 def debug(Y):
    all_frequency_y_i_minus_1_to_y_i=0
    all_frequency_y_i_to_y_i_plus_1=0
@@ -132,12 +158,13 @@ def main():
    for iter_i in range(0, N):
       for y_i in (Y['sequence_y_i']):
          Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
-      theta_parameter=calculate_theta_parameter(Y)
+      summation_dict=summation_transition_and_emission_frequency(Y, token_list)
+      theta_parameter=calculate_theta_parameter(Y, summation_dict, token_list)
+      """
       theta_list.append(theta_parameter)
       debug(Y)
-   """
-   for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
-      print y_i_to_x_i, Y['frequency_y_i_to_x_i'][y_i_to_x_i]
       """
+
+
 if __name__=='__main__':
    main()
