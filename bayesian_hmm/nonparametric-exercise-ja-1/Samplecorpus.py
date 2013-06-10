@@ -134,7 +134,9 @@ def summation_transition_and_emission_frequency(Y, token_list):
    summation_dict.setdefault('sum_y_i_minus_1_to_y_i_set', transition_freq_y_i_minus_1_to_any_set)
    return summation_dict
 
-def debug(Y):
+def debug(Y, iter_i):
+   """
+   何の目的の為に以下のコードを書いたんだっけ？
    all_frequency_y_i_minus_1_to_y_i=0
    all_frequency_y_i_to_y_i_plus_1=0
    all_frequency_y_i_to_x_i=0
@@ -148,8 +150,34 @@ def debug(Y):
    print "y_(i-1) to y_i", all_frequency_y_i_minus_1_to_y_i
    print "y_i to x_i", all_frequency_y_i_to_x_i
    print "y_i to y_(i+1)", all_frequency_y_i_to_y_i_plus_1
-
-
+   """
+   #尤度が一度，上昇して下降した時に終了するコード
+   if iter_i==1:
+      previous_entropy_dict={}
+      for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:
+         previous_entropy_dict.setdefault('y-forward-'+y_i_minus_1_to_y_i, (Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], False))
+      for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:
+         previous_entropy_dict.setdefault('y-backward-'+y_i_to_y_i_plus_1, (Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], False))
+      for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
+         previous_entropy_dict.setdefault('x-gen-'+y_i_to_x_i, (Y['frequency_y_i_to_x_i'][y_i_to_x_i], False))
+   elif iter_i>1:
+      #すべての辞書にたいして共通の処理（いまの尤度が前回より高ければ，タプルの中身をTrueに else:バグかチェック）は記述が大変なので，関数にまとめる
+      for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:
+         entropy_check('y-forward-', y_i_minus_1_to_y_i, Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], previous_entropy_dict)
+      for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:
+         entropy_check('y-backward-', y_i_to_y_i_plus_1, Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], previous_entropy_dict)
+      for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
+         entropy_check('x-gen-', y_i_to_x_i, Y['frequency_y_i_to_x_i'][y_i_to_x_i], previous_entropy_dict)
+   
+def entropy_check(mode, current_parameter, current_entropy, previous_entropy_dict):
+   #いまの尤度が前回より高ければ，タプルの中身をTrueに else:バグかチェック
+   if current_entropy>=previous_entropy_dict[mode+current_parameter]:
+      previous_entropy_dict[mode+current_parameter][1]=True
+   elif current_entropy<=previous_entropy_dict[mode+current_parameter]\
+          and previous_entropy_dict[mode+current_parameter][1]==True:
+      print 'Bug found here mode:{0}, parameter:{1}'.format(mode, current_parameter)
+      sys.exit('program exits')
+            
 def main():
    Y={}
    theta_list=[]
@@ -160,10 +188,8 @@ def main():
          Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
       summation_dict=summation_transition_and_emission_frequency(Y, token_list)
       theta_parameter=calculate_theta_parameter(Y, summation_dict, token_list)
-      """
       theta_list.append(theta_parameter)
-      debug(Y)
-      """
+      debug(Y, iter_i)
 
 
 if __name__=='__main__':
