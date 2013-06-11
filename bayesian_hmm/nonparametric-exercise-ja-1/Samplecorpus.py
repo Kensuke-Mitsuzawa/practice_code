@@ -4,7 +4,7 @@ import sys, random
 import sampletag
 
 #イテレーション数は適当に
-N=1
+N=100
 #y_iのタグを保存しておくリスト
 tag_of_y_i=[]
 #y_i自身の頻度を保存しておく
@@ -82,7 +82,7 @@ def preprocess_Y(tag_set, Y, input_file_lines):
     Y.setdefault('frequency_y_i_to_y_i_plus_1', frequency_y_i_to_y_i_plus_1)
     Y.setdefault('unigram_prob', unigram_prob)
     return token_list, Y
-def calculate_theta_parameter(Y, summation_dict, token_list):
+def calculate_theta_parameter(Y, summation_dict, token_list, theta_parameter):
    """
    theta parameterつまり遷移確率と生成確率を計上する
    """
@@ -92,17 +92,24 @@ def calculate_theta_parameter(Y, summation_dict, token_list):
    for y_i_minus_1 in range(0, 21):
       for y_i in range(0, 21):
          transition_prob_y_i_minus_1_to_y_i.setdefault('{0}_{1}'.format(y_i_minus_1, y_i),\
-                                                          Y['frequency_y_i_minus_1_to_y_i']['{0}_{1}'.format(y_i_minus_1, y_i)]/float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i_minus_1)]) )
+                                                          Y['frequency_y_i_minus_1_to_y_i']['{0}_{1}'.format(y_i_minus_1, y_i)]\
+                                                          /float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i_minus_1)]) )
    for y_i in range(0, 21):
       for y_i_plus_1 in range(0, 21):
          transition_prob_y_i_to_y_i_plus_1.setdefault('{0}_{1}'.format(y_i, y_i_plus_1),\
-                                                         Y['frequency_y_i_to_y_i_plus_1']['{0}_{1}'.format(y_i, y_i_plus_1)]/float(summation_dict['sum_y_i_to_y_i_plus_1_set']['frequency_{0}_to_any'.format(y_i)]) )
+                                                         Y['frequency_y_i_to_y_i_plus_1']['{0}_{1}'.format(y_i, y_i_plus_1)]\
+                                                         /float(summation_dict['sum_y_i_to_y_i_plus_1_set']['frequency_{0}_to_any'.format(y_i)]) )
    
    for y_i_minus_1 in range(0, 21):
       for x_token in token_list:
          emission_prob_y_i_to_x_i.setdefault('{0}_{1}'.format(y_i, x_token),\
-                                                Y['frequency_y_i_to_x_i']['{0}_{1}'.format(y_i, x_token)]/float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i)]) )
-   print emission_prob_y_i_to_x_i
+                                                Y['frequency_y_i_to_x_i']['{0}_{1}'.format(y_i, x_token)]\
+                                                /float(summation_dict['sum_y_i_minus_1_to_y_i_set']['frequency_{0}_to_any'.format(y_i)]) )
+   theta_parameter.setdefault('transition_prob_y_i_minus_1_to_y_i', transition_prob_y_i_minus_1_to_y_i)
+   theta_parameter.setdefault('transition_prob_y_i_to_y_i_plus_1', transition_prob_y_i_to_y_i_plus_1)
+   theta_parameter.setdefault('emission_prob_y_i_to_x_i', emission_prob_y_i_to_x_i)
+   return theta_parameter
+
 def summation_transition_and_emission_frequency(Y, token_list):
    """
    theta parameterを求めるときの分母に使う数を計上する
@@ -134,7 +141,7 @@ def summation_transition_and_emission_frequency(Y, token_list):
    summation_dict.setdefault('sum_y_i_minus_1_to_y_i_set', transition_freq_y_i_minus_1_to_any_set)
    return summation_dict
 
-def debug(Y, iter_i):
+def debug(theta_parameter, iter_i, previous_entropy_dict):
    """
    何の目的の為に以下のコードを書いたんだっけ？
    all_frequency_y_i_minus_1_to_y_i=0
@@ -152,34 +159,42 @@ def debug(Y, iter_i):
    print "y_i to y_(i+1)", all_frequency_y_i_to_y_i_plus_1
    """
    #尤度が一度，上昇して下降した時に終了するコード
-   if iter_i==1:
-      previous_entropy_dict={}
-      for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:
-         previous_entropy_dict.setdefault('y-forward-'+y_i_minus_1_to_y_i, (Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], False))
-      for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:
-         previous_entropy_dict.setdefault('y-backward-'+y_i_to_y_i_plus_1, (Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], False))
-      for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
-         previous_entropy_dict.setdefault('x-gen-'+y_i_to_x_i, (Y['frequency_y_i_to_x_i'][y_i_to_x_i], False))
+   if iter_i==0:
+      for y_i_minus_1_to_y_i in theta_parameter['transition_prob_y_i_minus_1_to_y_i']:
+         previous_entropy_dict.setdefault('y-forward-'+y_i_minus_1_to_y_i, (theta_parameter['transition_prob_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], False))
+      for y_i_to_y_i_plus_1 in theta_parameter['transition_prob_y_i_to_y_i_plus_1']:
+         previous_entropy_dict.setdefault('y-backward-'+y_i_to_y_i_plus_1, (theta_parameter['transition_prob_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], False))
+      for y_i_to_x_i in theta_parameter['emission_prob_y_i_to_x_i']:
+         previous_entropy_dict.setdefault('x-gen-'+y_i_to_x_i, (theta_parameter['emission_prob_y_i_to_x_i'][y_i_to_x_i], False))
    elif iter_i>1:
       #すべての辞書にたいして共通の処理（いまの尤度が前回より高ければ，タプルの中身をTrueに else:バグかチェック）は記述が大変なので，関数にまとめる
-      for y_i_minus_1_to_y_i in Y['frequency_y_i_minus_1_to_y_i']:
-         entropy_check('y-forward-', y_i_minus_1_to_y_i, Y['frequency_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], previous_entropy_dict)
-      for y_i_to_y_i_plus_1 in Y['frequency_y_i_to_y_i_plus_1']:
-         entropy_check('y-backward-', y_i_to_y_i_plus_1, Y['frequency_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], previous_entropy_dict)
-      for y_i_to_x_i in Y['frequency_y_i_to_x_i']:
-         entropy_check('x-gen-', y_i_to_x_i, Y['frequency_y_i_to_x_i'][y_i_to_x_i], previous_entropy_dict)
-   
+      for y_i_minus_1_to_y_i in theta_parameter['transition_prob_y_i_minus_1_to_y_i']:
+         previous_entropy_dict=entropy_check('y-forward-', y_i_minus_1_to_y_i,\
+                                                theta_parameter['transition_prob_y_i_minus_1_to_y_i'][y_i_minus_1_to_y_i], previous_entropy_dict)
+      for y_i_to_y_i_plus_1 in theta_parameter['transition_prob_y_i_to_y_i_plus_1']:
+         previous_entropy_dict=entropy_check('y-backward-', y_i_to_y_i_plus_1,\
+                                                theta_parameter['transition_prob_y_i_to_y_i_plus_1'][y_i_to_y_i_plus_1], previous_entropy_dict)
+      for y_i_to_x_i in theta_parameter['emission_prob_y_i_to_x_i']:
+         previous_entropy_dict=entropy_check('x-gen-', y_i_to_x_i,\
+                                                theta_parameter['emission_prob_y_i_to_x_i'][y_i_to_x_i], previous_entropy_dict)
+   return previous_entropy_dict
+         
 def entropy_check(mode, current_parameter, current_entropy, previous_entropy_dict):
    #いまの尤度が前回より高ければ，タプルの中身をTrueに else:バグかチェック
    if current_entropy>=previous_entropy_dict[mode+current_parameter]:
       previous_entropy_dict[mode+current_parameter][1]=True
-   elif current_entropy<=previous_entropy_dict[mode+current_parameter]\
+      previous_entropy_dict[mode+current_parameter][0]=current_entropy
+
+   elif current_entropy<previous_entropy_dict[mode+current_parameter]\
           and previous_entropy_dict[mode+current_parameter][1]==True:
       print 'Bug found here mode:{0}, parameter:{1}'.format(mode, current_parameter)
       sys.exit('program exits')
+   return previous_entropy_dict
             
 def main():
    Y={}
+   previous_entropy_dict={}
+   theta_parameter={}
    theta_list=[]
    token_list, Y\
        =preprocess_Y(tag_set, Y, open('wiki-sample.word_edit', 'r').readlines())
@@ -187,9 +202,13 @@ def main():
       for y_i in (Y['sequence_y_i']):
          Y=sampletag.SampleTag(token_list, y_i, Y, tag_set)
       summation_dict=summation_transition_and_emission_frequency(Y, token_list)
-      theta_parameter=calculate_theta_parameter(Y, summation_dict, token_list)
+      theta_parameter=calculate_theta_parameter(Y, summation_dict, token_list, theta_parameter)
       theta_list.append(theta_parameter)
-      debug(Y, iter_i)
+      previous_entropy_dict=debug(theta_parameter, iter_i, previous_entropy_dict)
+   
+   for keys in theta_parameter:
+      for keys_in_each_dict in theta_parameter[keys]:
+         print keys, keys_in_each_dict, theta_parameter[keys][keys_in_each_dict]
 
 
 if __name__=='__main__':
