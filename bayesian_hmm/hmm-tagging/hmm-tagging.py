@@ -27,15 +27,17 @@ def train(trainfile):
         if previous+u' </s>' in transition: transition[previous+u' </s>']+=1
         else: transition.setdefault(previous+u' </s>', 1)
     #以下はモデルの保存にために使うこともあるらしい（を意図しているようだ
-    for key in transition:
-        previous, word=key.split(u' ')
-        print 'T', key, float(transition[key])/context[previous]
-        transition[key]=float(transition[key])/context[previous]
-    for key in emit:
-        tag, word=key.split(u' ')
-        print 'E', key, float(emit[key])/context[tag]
-        emit[key]=float(emit[key])/context[tag]
-
+    try:
+        for key in transition:
+            previous, word=key.split(u' ')
+            print 'T', key.encode('utf-8'), float(transition[key])/context[previous]
+            transition[key]=float(transition[key])/context[previous]
+        for key in emit:
+            tag, word=key.split(u' ')
+            print 'E', key.encode('utf-8'), float(emit[key])/context[tag]
+            emit[key]=float(emit[key])/context[tag]
+    except UnicodeEncodeError:
+        pass
     return emit, transition, context
 
 def forward(testfile, emit, transition, context):
@@ -84,23 +86,25 @@ def forward(testfile, emit, transition, context):
         print best_edge
         print best_score
         backward(best_edge, best_score, L)
-    return best_edge, best_score, L
 
 def backward(best_edge, best_score, L):
-    tags=[]
-    next_edge=best_edge['{} </s>'.format(L+1)]
-    while next_edge!='0 <s>':
-        position, tag=next_edge.split(' ')
-        tags.append(tag)
-        next_edge=best_edge[next_edge]
-    tags.reverse()
-    print ' '.join(tags)
+    try:
+        tags=[]
+        next_edge=best_edge['{} </s>'.format(L+1)]
+        while next_edge!='0 <s>':
+            position, tag=next_edge.split(' ')
+            tags.append(tag)
+            next_edge=best_edge[next_edge]
+        tags.reverse()
+        print ' '.join(tags)
+    except:
+        print 'Something error happend'
 
 def main():
     trainfile=open(sys.argv[1])
     emit, transition, context=train(trainfile)
     testfile=open(sys.argv[2])
-    best_edge, best_score, L=forward(testfile, emit, transition, context)
+    forward(testfile, emit, transition, context)
 
 
 if __name__=='__main__':
